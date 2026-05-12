@@ -75,11 +75,11 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
       }
       supabase
         .from('profiles')
-        .select('full_name')
+        .select('name')
         .eq('id', data.user!.id)
         .single()
         .then(({ data: profile }) => {
-          setProfile({ name: profile?.full_name || undefined, email: data.user!.email })
+          setProfile({ name: profile?.name || undefined, email: data.user!.email })
         })
       setLoading(false)
     })

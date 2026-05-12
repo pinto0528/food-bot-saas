@@ -25,7 +25,18 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
-    router.push('/dashboard')
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', (await supabase.auth.getUser()).data.user?.id)
+      .single()
+
+    if (profile?.role === 'super_admin') {
+      router.push('/admin')
+    } else {
+      router.push('/dashboard')
+    }
   }
 
   return (
