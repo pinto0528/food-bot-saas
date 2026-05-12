@@ -82,14 +82,14 @@ ALTER PUBLICATION supabase_realtime ADD TABLE conversations;
 -- Helper functions for RLS
 CREATE OR REPLACE FUNCTION public.get_user_restaurant_id()
 RETURNS UUID
-LANGUAGE SQL STABLE
+LANGUAGE SQL STABLE SECURITY DEFINER
 AS $$
   SELECT restaurant_id FROM public.profiles WHERE id = auth.uid()
 $$;
 
 CREATE OR REPLACE FUNCTION public.is_super_admin()
 RETURNS BOOLEAN
-LANGUAGE SQL STABLE
+LANGUAGE SQL STABLE SECURITY DEFINER
 AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.profiles
