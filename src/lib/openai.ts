@@ -1,11 +1,10 @@
 import OpenAI from 'openai'
 import type { LLMResponse } from './types'
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || '' })
-
 export async function processWithOpenAI(
   messages: { role: string; content: string }[]
 ): Promise<LLMResponse | null> {
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY || '' })
   try {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
