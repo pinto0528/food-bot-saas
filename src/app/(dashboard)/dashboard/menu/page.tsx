@@ -39,22 +39,24 @@ export default function MenuPage() {
   const supabase = createClient()
 
   const fetchItems = async () => {
-    const { data: user } = await supabase.auth.getUser()
-    if (!user.user) return
+    const { data: user, error: userErr } = await supabase.auth.getUser()
+    if (userErr) { console.error('getUser error:', userErr); return }
+    if (!user.user) { console.error('no user'); return }
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileErr } = await supabase
       .from('profiles')
       .select('restaurant_id')
       .eq('id', user.user.id)
       .single()
+    if (profileErr) console.error('profile err:', profileErr)
+    if (!profile?.restaurant_id) { console.error('no restaurant_id'); setLoading(false); return }
 
-    if (!profile?.restaurant_id) return
-
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('menu_items')
       .select('*')
       .eq('restaurant_id', profile.restaurant_id)
       .order('category', { ascending: true })
+    if (error) console.error('menu_items query err:', error)
 
     setItems((data as MenuItem[]) || [])
     setLoading(false)

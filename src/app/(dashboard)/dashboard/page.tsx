@@ -187,23 +187,25 @@ export default function OrdersPage() {
   const supabase = createClient()
 
   const fetchOrders = async () => {
-    const { data: user } = await supabase.auth.getUser()
-    if (!user.user) return
+    const { data: user, error: userErr } = await supabase.auth.getUser()
+    if (userErr) { console.error('getUser error:', userErr); return }
+    if (!user.user) { console.error('no user'); return }
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileErr } = await supabase
       .from('profiles')
       .select('restaurant_id')
       .eq('id', user.user.id)
       .single()
+    if (profileErr) console.error('profile err:', profileErr)
+    if (!profile?.restaurant_id) { console.error('no restaurant_id in profile'); setLoading(false); return }
 
-    if (!profile?.restaurant_id) return
-
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('orders')
       .select('*')
       .eq('restaurant_id', profile.restaurant_id)
       .order('created_at', { ascending: false })
       .limit(50)
+    if (error) console.error('orders query err:', error)
 
     setOrders((data as Order[]) || [])
     setLoading(false)
