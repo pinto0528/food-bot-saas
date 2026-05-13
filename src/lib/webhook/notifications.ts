@@ -28,8 +28,6 @@ export function buildConfirmationToCustomer(items: { name: string; qty: number; 
 }
 
 export async function notifyRestaurant(
-  token: string,
-  phoneNumberId: string,
   restaurantPhone: string,
   customerPhone: string,
   items: { name: string; qty: number; price: number; notes?: string }[],
@@ -37,7 +35,7 @@ export async function notifyRestaurant(
   notes?: string | null
 ): Promise<boolean> {
   const message = buildOrderNotification(customerPhone, items, total, notes)
-  return sendWhatsAppMessage(token, phoneNumberId, restaurantPhone, message)
+  return sendWhatsAppMessage(restaurantPhone, message)
 }
 
 function getItemEmoji(name: string): string {

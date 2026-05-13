@@ -4,12 +4,21 @@
 - Next.js 16 App Router, TypeScript, Tailwind CSS v4
 - Supabase (Postgres, Auth, Realtime), shadcn/ui v4 (@base-ui/react), next-themes, sonner
 - Groq SDK + OpenAI SDK (LLM factory: Groq fallback if OPENAI_API_KEY unset)
+- @whiskeysockets/baileys (WhatsApp Web protocol, replaces Meta/Twilio APIs)
+
+## Deployment
+- **Production:** VPS with PM2, custom `server.js` entry point (Next.js + Baileys bot in one process)
+- `server.js` starts both Next.js HTTP server and the WhatsApp bot
+- `ecosystem.config.js` — PM2 config
+- `setup-vps.sh` — provisioning script
+- No longer deploy on Vercel (Baileys needs persistent WebSocket)
 
 ## Commands
-- `npm run dev` — dev server
-- `npm run build` — typecheck + compile + static generation. Run before commit.
+- `npm run dev` — Next.js dev server (no bot)
+- `npm run build` — typecheck + compile + static generation
+- `npm run start` — `node server.js` (production: Next.js + Baileys bot)
+- `npm run bot` — `tsx src/lib/baileys/bot.ts` (standalone bot, for testing)
 - `npm run lint`
-- GH push → Vercel auto-deploy
 
 ## Critical gotchas
 
@@ -55,3 +64,14 @@ Project ref: `hvsqswctwfysncgfrwyu`
 Admin user: `nicolaspinto2805@gmail.com` / `nicolaspinto28` (role=super_admin)  
 Tenant test: `tenant@gmail.com` / `tenant` (role=restaurant_owner, restaurant="El Buen Sabor")  
 Service key: from `.env.local` SUPABASE_SERVICE_ROLE_KEY (starts with `sb_secret_`)
+
+### Baileys WhatsApp (replaces Meta Cloud API + Twilio)
+- **No external provider needed.** Baileys implements the WhatsApp Web protocol directly.
+- Restaurant scans a QR code from the dashboard to link their WhatsApp.
+- Session stored on VPS filesystem (`./sessions/<restaurant_id>/`).
+- `whatsapp.ts` uses an injectable sender pattern: `registerSendMessage(fn)` called by `bot.ts`.
+- `handler.ts` now accepts `(supabase, restaurant, from, text)` instead of looking up restaurant by `phone_number_id`.
+- Bot runs inside `server.js` alongside Next.js (same Node.js process).
+- QR endpoint: `GET /api/baileys/qr` returns `{ qr, status }` for dashboard.
+- Env: `BOT_RESTAURANT_ID` = which restaurant this bot handles; `BOT_SESSIONS_DIR` = session storage path.
+- Webhook endpoint (`/api/webhook`) is disabled — Baileys receives messages via WebSocket.

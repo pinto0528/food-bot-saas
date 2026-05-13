@@ -5,13 +5,15 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "tsx server.js",
+    "bot": "tsx src/lib/baileys/bot.ts",
     "lint": "next lint"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
+    "@whiskeysockets/baileys": "^7.0.0-rc11",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "groq-sdk": "^1.2.0",
@@ -36,6 +38,7 @@
     "eslint": "^9.27.0",
     "eslint-config-next": "^16.2.6",
     "tailwindcss": "^4.1.7",
+    "tsx": "^4.21.0",
     "typescript": "^5.8.3"
   }
 }

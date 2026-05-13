@@ -8,36 +8,13 @@ import { sendWhatsAppMessage } from '../whatsapp'
 import { notifyRestaurant, buildConfirmationToCustomer } from './notifications'
 import { logError } from './errors'
 
-interface WebhookPayload {
-  phone_number_id: string
-  from: string
-  text: string
-}
-
 export async function handleIncomingMessage(
   supabase: SupabaseClient<Database>,
-  payload: WebhookPayload
+  restaurant: any,
+  from: string,
+  text: string
 ) {
-  const { phone_number_id, from, text } = payload
-
-  // Find restaurant by phone_number_id
-  const { data: restaurant, error: restError } = await supabase
-    .from('restaurants')
-    .select('*')
-    .eq('phone_number_id', phone_number_id)
-    .single()
-
-  if (restError || !restaurant) {
-    await logError(supabase, null, 'webhook', 'Restaurant not found', {
-      phone_number_id,
-      from,
-    })
-    return
-  }
-
-  if (restaurant.status === 'suspended') {
-    return
-  }
+  if (restaurant.status === 'suspended') return
 
   // Check if this is a response from the restaurant owner
   if (from === restaurant.phone) {
@@ -105,7 +82,7 @@ export async function handleIncomingMessage(
 
   if (!menuItems || menuItems.length === 0) {
     const reply = 'El menu no esta disponible en este momento. Por favor intenta mas tarde.'
-    await sendWhatsAppMessage(restaurant.waba_token || '', restaurant.phone_number_id || '', from, reply)
+    await sendWhatsAppMessage(from, reply)
     const assistantMsg: ConversationMessage = { role: 'assistant', content: reply, timestamp: new Date().toISOString() }
     await supabase
       .from('conversations')
@@ -132,7 +109,7 @@ export async function handleIncomingMessage(
 
   if (!llmResponse) {
     const fallback = 'Estoy procesando tu pedido, un momento por favor.'
-    await sendWhatsAppMessage(restaurant.waba_token || '', restaurant.phone_number_id || '', from, fallback)
+    await sendWhatsAppMessage(from, fallback)
     await logError(supabase, restaurant.id, 'llm', 'LLM returned null response', { from, text })
     return
   }
@@ -140,19 +117,12 @@ export async function handleIncomingMessage(
   await executeAction(supabase, llmResponse, conversation, restaurant)
 
   const replyText = llmResponse.message
-  await sendWhatsAppMessage(restaurant.waba_token || '', restaurant.phone_number_id || '', from, replyText)
+  await sendWhatsAppMessage(from, replyText)
 
   if (llmResponse.action === 'confirm_order') {
     const items: OrderItem[] = convContext.items || []
     const total = items.reduce((sum, i) => sum + i.price * i.qty, 0)
-    await notifyRestaurant(
-      restaurant.waba_token || '',
-      restaurant.phone_number_id || '',
-      restaurant.phone,
-      from,
-      items,
-      total
-    )
+    await notifyRestaurant(restaurant.phone, from, items, total)
   }
 
   // Save messages
@@ -174,7 +144,6 @@ async function handleRestaurantResponse(
 ) {
   const trimmed = text.trim()
 
-  // Find the most recent pending order for this restaurant
   const { data: order } = await supabase
     .from('orders')
     .select('*, conversations!inner(customer_phone)')
@@ -197,8 +166,6 @@ async function handleRestaurantResponse(
       order.total
     )
     await sendWhatsAppMessage(
-      restaurant.waba_token || '',
-      restaurant.phone_number_id || '',
       (order as any).conversations?.customer_phone || '',
       confirmation
     )
@@ -209,8 +176,6 @@ async function handleRestaurantResponse(
       .eq('id', order.id)
 
     await sendWhatsAppMessage(
-      restaurant.waba_token || '',
-      restaurant.phone_number_id || '',
       (order as any).conversations?.customer_phone || '',
       'Tu pedido fue cancelado. Si necesitas ayuda, escribe de nuevo.'
     )
@@ -218,8 +183,6 @@ async function handleRestaurantResponse(
     const customerPhone = (order as any).conversations?.customer_phone
     if (customerPhone) {
       await sendWhatsAppMessage(
-        restaurant.waba_token || '',
-        restaurant.phone_number_id || '',
         restaurant.phone,
         `Numero del cliente: ${customerPhone}`
       )
