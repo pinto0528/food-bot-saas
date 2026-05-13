@@ -62,6 +62,7 @@ CREATE TABLE profiles (
   restaurant_id UUID REFERENCES restaurants(id),
   role user_role NOT NULL DEFAULT 'restaurant_owner',
   name TEXT,
+  first_login BOOLEAN NOT NULL DEFAULT false,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

@@ -28,12 +28,14 @@ export default function LoginPage() {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, first_login')
       .eq('id', (await supabase.auth.getUser()).data.user?.id)
       .single()
 
     if (profile?.role === 'super_admin') {
       router.push('/admin')
+    } else if (profile?.first_login) {
+      router.push('/dashboard/cambiar-contrasena')
     } else {
       router.push('/dashboard')
     }

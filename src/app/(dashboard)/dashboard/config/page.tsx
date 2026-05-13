@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
+import { Lock } from 'lucide-react'
 
 export default function ConfigPage() {
   const [restaurant, setRestaurant] = useState<any>(null)
@@ -98,6 +100,20 @@ export default function ConfigPage() {
             <span className="text-muted-foreground">Plan actual</span>
             <Badge variant="outline">Trial</Badge>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Seguridad</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <a href="/dashboard/cambiar-contrasena">
+            <Button variant="outline" className="w-full">
+              <Lock className="h-4 w-4 mr-2" />
+              Cambiar Contraseña
+            </Button>
+          </a>
         </CardContent>
       </Card>
     </div>

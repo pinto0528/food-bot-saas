@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   // Assign restaurant_id to profile (trigger already created the profile row)
   const { error: profileError } = await supabase
     .from('profiles')
-    .update({ restaurant_id, name: name || null, role: 'restaurant_owner' })
+    .update({ restaurant_id, name: name || null, role: 'restaurant_owner', first_login: true })
     .eq('id', authUser.user.id)
 
   if (profileError) {
