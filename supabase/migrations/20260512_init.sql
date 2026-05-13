@@ -149,6 +149,14 @@ CREATE POLICY "super_admin_select_all_profiles" ON profiles
 CREATE POLICY "super_admin_select_errors" ON error_logs
   FOR SELECT USING (is_super_admin());
 
+-- super_admin access to all tables
+CREATE POLICY "super_admin_select_menu_items" ON menu_items
+  FOR SELECT USING (is_super_admin());
+CREATE POLICY "super_admin_select_orders" ON orders
+  FOR SELECT USING (is_super_admin());
+CREATE POLICY "super_admin_select_conversations" ON conversations
+  FOR SELECT USING (is_super_admin());
+
 -- Trigger to auto-create profile on signup
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
