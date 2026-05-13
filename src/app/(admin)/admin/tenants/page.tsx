@@ -23,7 +23,9 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
-import { Plus, Pencil, Search } from 'lucide-react'
+import { Plus, Pencil, Search, UserPlus } from 'lucide-react'
+import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 
 interface Restaurant {
   id: string
@@ -62,23 +64,28 @@ export default function TenantsPage() {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [editing, setEditing] = useState<Restaurant | null>(null)
   const [form, setForm] = useState(emptyForm)
+  const [createOwner, setCreateOwner] = useState(false)
+  const [ownerEmail, setOwnerEmail] = useState('')
+  const [ownerPassword, setOwnerPassword] = useState('')
+  const [ownerName, setOwnerName] = useState('')
+  const [saving, setSaving] = useState(false)
   const supabase = createClient()
   const PAGE_SIZE = 10
 
-  const fetch = async () => {
+  const loadRestaurants = async () => {
     const { data } = await supabase.from('restaurants').select('*').order('created_at', { ascending: false })
     setRestaurants((data as Restaurant[]) || [])
     setLoading(false)
   }
 
-  useEffect(() => { fetch() }, [])
+  useEffect(() => { loadRestaurants() }, [])
 
   const filtered = restaurants.filter(
     (r) => r.name.toLowerCase().includes(search.toLowerCase()) || r.phone.includes(search)
   )
   const paged = filtered.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE)
 
-  const openCreate = () => { setEditing(null); setForm(emptyForm); setDialogOpen(true) }
+  const openCreate = () => { setEditing(null); setForm(emptyForm); setCreateOwner(false); setOwnerEmail(''); setOwnerPassword(''); setOwnerName(''); setDialogOpen(true) }
   const openEdit = (r: Restaurant) => {
     setEditing(r)
     setForm({ name: r.name, phone: r.phone, waba_id: r.waba_id || '', waba_token: r.waba_token || '', phone_number_id: r.phone_number_id || '', webhook_verify_token: r.webhook_verify_token || '', status: r.status })
@@ -87,17 +94,47 @@ export default function TenantsPage() {
 
   const handleSave = async () => {
     if (!form.name) { toast.error('El nombre es obligatorio'); return }
+    setSaving(true)
     if (editing) {
       const { error } = await supabase.from('restaurants').update(form).eq('id', editing.id)
-      if (error) { toast.error('Error al actualizar'); return }
+      if (error) { toast.error('Error al actualizar'); setSaving(false); return }
       toast.success('Restaurante actualizado')
+      setDialogOpen(false)
+      loadRestaurants()
+      setSaving(false)
+      return
+    }
+
+    const { data: newRest, error: insertError } = await supabase.from('restaurants').insert(form).select().single()
+    if (insertError) { toast.error('Error al crear'); setSaving(false); return }
+
+    if (createOwner) {
+      if (!ownerEmail || !ownerPassword) {
+        toast.error('Email y contraseña son obligatorios para crear el usuario')
+        await supabase.from('restaurants').delete().eq('id', newRest!.id)
+        setSaving(false)
+        return
+      }
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: ownerEmail, password: ownerPassword, name: ownerName || form.name, restaurant_id: newRest!.id }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        toast.error(`Error al crear usuario: ${err.error}`)
+        await supabase.from('restaurants').delete().eq('id', newRest!.id)
+        setSaving(false)
+        return
+      }
+      toast.success(`Restaurante creado. Dueño: ${ownerEmail} / ${ownerPassword}`)
     } else {
-      const { error } = await supabase.from('restaurants').insert(form)
-      if (error) { toast.error('Error al crear'); return }
       toast.success('Restaurante creado')
     }
+
     setDialogOpen(false)
-    fetch()
+    loadRestaurants()
+    setSaving(false)
   }
 
   const handleDelete = async (id: string) => {
@@ -105,7 +142,7 @@ export default function TenantsPage() {
     const { error } = await supabase.from('restaurants').delete().eq('id', id)
     if (error) { toast.error('Error al eliminar'); return }
     toast.success('Restaurante eliminado')
-    fetch()
+    loadRestaurants()
   }
 
   if (loading) return <div className="space-y-4"><Skeleton className="h-8 w-48" /><Skeleton className="h-64 w-full" /></div>
@@ -208,7 +245,38 @@ export default function TenantsPage() {
                 <Input value={form.webhook_verify_token} onChange={(e) => setForm({ ...form, webhook_verify_token: e.target.value })} />
               </div>
             </div>
-            <Button onClick={handleSave} className="w-full">{editing ? 'Guardar Cambios' : 'Crear Restaurante'}</Button>
+
+            {!editing && (
+              <>
+                <Separator />
+                <div className="flex items-center gap-2">
+                  <Switch checked={createOwner} onCheckedChange={setCreateOwner} />
+                  <Label className="font-medium">Crear usuario administrador del restaurante</Label>
+                </div>
+                {createOwner && (
+                  <div className="space-y-3 pl-0">
+                    <div className="space-y-2">
+                      <Label>Email del dueño</Label>
+                      <Input type="email" value={ownerEmail} onChange={(e) => setOwnerEmail(e.target.value)} placeholder="dueno@restaurante.com" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label>Contraseña</Label>
+                        <Input type="password" value={ownerPassword} onChange={(e) => setOwnerPassword(e.target.value)} placeholder="••••••••" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Nombre del dueño</Label>
+                        <Input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="Juan Pérez" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            <Button onClick={handleSave} className="w-full" disabled={saving}>
+              {saving ? 'Guardando...' : editing ? 'Guardar Cambios' : 'Crear Restaurante'}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
