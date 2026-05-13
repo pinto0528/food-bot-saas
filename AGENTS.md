@@ -41,11 +41,14 @@ Warning is non-blocking. The `middleware.ts` convention is deprecated in favor o
 Login reads `profiles.role`: `super_admin`→`/admin`, `restaurant_owner`→`/dashboard`.
 
 ### URL structure
-Route group `(dashboard)` does NOT affect URL. Actual paths:
+Route groups do NOT affect URL. Actual paths:
 - `/dashboard` → `(dashboard)/dashboard/page.tsx`
 - `/dashboard/menu` → `(dashboard)/dashboard/menu/page.tsx`
 - `/dashboard/config` → `(dashboard)/dashboard/config/page.tsx`
 - `/admin` → `(admin)/admin/page.tsx`
+- `/admin/tenants` → `(admin)/admin/tenants/page.tsx`
+- `/admin/monitoreo` → `(admin)/admin/monitoreo/page.tsx`
+- `/admin/logs` → `(admin)/admin/logs/page.tsx`
 
 ### Supabase project
 Project ref: `hvsqswctwfysncgfrwyu`  
