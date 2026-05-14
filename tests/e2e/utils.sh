@@ -45,17 +45,17 @@ write_result() {
   local errors_json="$9"
 
   local action cart reply tool_calls llm_ms invalid_items
-  action=$(echo "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))" 2>/dev/null)
-  cart=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))" 2>/dev/null)
-  reply=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('reply','')))" 2>/dev/null)
-  llm_ms=$(echo "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('debug',{}).get('llmMs',0))" 2>/dev/null)
-  tool_calls=$(echo "$resp" | python -c "
+  action=$(printf '%s' "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))" 2>/dev/null)
+  cart=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))" 2>/dev/null)
+  reply=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('reply','')))" 2>/dev/null)
+  llm_ms=$(printf '%s' "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('debug',{}).get('llmMs',0))" 2>/dev/null)
+  tool_calls=$(printf '%s' "$resp" | python -c "
 import sys,json
 d=json.load(sys.stdin)
 tc=d.get('debug',{}).get('llmResponse',{}).get('toolCalls',[])
 print(json.dumps(tc))
 " 2>/dev/null)
-  invalid_items=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('invalidItems',[])))" 2>/dev/null)
+  invalid_items=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('invalidItems',[])))" 2>/dev/null)
 
   local py_pass
   if [ "$passed" = true ]; then py_pass="True"; else py_pass="False"; fi
@@ -175,7 +175,7 @@ assert_action() {
   local resp="$1"
   local expected="$2"
   local actual
-  actual=$(echo "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
+  actual=$(printf '%s' "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
   if [ "$actual" = "$expected" ]; then
     echo ""
     return 0
@@ -190,7 +190,7 @@ assert_cart_length() {
   local resp="$1"
   local expected="$2"
   local actual
-  actual=$(echo "$resp" | python -c "import sys,json; print(len(json.load(sys.stdin).get('cart',[])))")
+  actual=$(printf '%s' "$resp" | python -c "import sys,json; print(len(json.load(sys.stdin).get('cart',[])))")
   if [ "$actual" -eq "$expected" ] 2>/dev/null; then
     echo ""
     return 0
@@ -206,7 +206,7 @@ assert_cart_item() {
   local field="$3"
   local expected="$4"
   local actual
-  actual=$(echo "$resp" | python -c "
+  actual=$(printf '%s' "$resp" | python -c "
 import sys, json
 data = json.load(sys.stdin)
 cart = data.get('cart', [])
@@ -230,7 +230,7 @@ assert_cart_item_by_name() {
   local field="$3"
   local expected="$4"
   local actual
-  actual=$(echo "$resp" | python -c "
+  actual=$(printf '%s' "$resp" | python -c "
 import sys, json
 data = json.load(sys.stdin)
 cart = data.get('cart', [])
@@ -253,7 +253,7 @@ assert_reply_contains() {
   local resp="$1"
   local keyword="$2"
   local reply
-  reply=$(echo "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('reply',''))")
+  reply=$(printf '%s' "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('reply',''))")
   if echo "$reply" | grep -iq "$keyword"; then
     echo ""
     return 0
@@ -267,7 +267,7 @@ assert_reply_not_contains() {
   local resp="$1"
   local keyword="$2"
   local reply
-  reply=$(echo "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('reply',''))")
+  reply=$(printf '%s' "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('reply',''))")
   if echo "$reply" | grep -iq "$keyword"; then
     echo "reply contiene (no debia) '$keyword'"
     return 1
@@ -280,7 +280,7 @@ assert_invalid_items() {
   local resp="$1"
   local expected="$2"
   local actual
-  actual=$(echo "$resp" | python -c "
+  actual=$(printf '%s' "$resp" | python -c "
 import sys, json
 items = json.load(sys.stdin).get('invalidItems', [])
 print(','.join(items))
@@ -297,10 +297,10 @@ print(','.join(items))
 assert_no_error() {
   local resp="$1"
   local has_err
-  has_err=$(echo "$resp" | python -c "import sys,json; d=json.load(sys.stdin); print('error' in d)")
+  has_err=$(printf '%s' "$resp" | python -c "import sys,json; d=json.load(sys.stdin); print('error' in d)")
   if [ "$has_err" = "True" ]; then
     local err_msg
-    err_msg=$(echo "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('error',''))")
+    err_msg=$(printf '%s' "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('error',''))")
     echo "API error: $err_msg"
     return 1
   fi
@@ -337,7 +337,7 @@ run_test() {
 
   # Extraer tool calls para el reporte
   local tool_calls_str
-  tool_calls_str=$(echo "$resp" | python -c "
+  tool_calls_str=$(printf '%s' "$resp" | python -c "
 import sys, json
 data = json.load(sys.stdin)
 tc = data.get('debug',{}).get('llmResponse',{}).get('toolCalls',[])
@@ -442,14 +442,14 @@ print(json.dumps(lines))
 
   if [ "$errors" -eq 0 ]; then
     local ms
-    ms=$(echo "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('debug',{}).get('llmMs',0))" 2>/dev/null)
+    ms=$(printf '%s' "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('debug',{}).get('llmMs',0))" 2>/dev/null)
     echo -e "  ${GREEN}✅ PASS${NC} (${ms}ms)"
     write_result "$group" "$id" "$desc" true "$message" "$cart_before" "$history" "$resp" "[]"
     PASS=$((PASS + 1))
   else
     echo -e "  ${RED}❌ FAIL ($errors assertions failed)${NC}"
     echo -e "${CYAN}$tool_calls_str${NC}"
-    echo "  cart result: $(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))" 2>/dev/null)"
+    echo "  cart result: $(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))" 2>/dev/null)"
     write_result "$group" "$id" "$desc" false "$message" "$cart_before" "$history" "$resp" "$errors_json"
     FAIL=$((FAIL + 1))
     FAILURES="$FAILURES\n  $group/$id: $desc"

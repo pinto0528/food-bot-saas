@@ -233,9 +233,9 @@ run_group_h_multiturno() {
   local h1_history='[]'
 
   resp=$(call_api "hola" "$h1_cart" "$h1_history")
-  h1_action=$(echo "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
-  h1_cart=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))")
-  h1_history=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('history',[])))")
+  h1_action=$(printf '%s' "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
+  h1_cart=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))")
+  h1_history=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('history',[])))")
   echo "  Turno 1 (hola): action=$h1_action"
   if [ "$h1_action" = "none" ]; then
     echo -e "  ${GREEN}  ✅${NC}"
@@ -248,9 +248,9 @@ run_group_h_multiturno() {
   PASS=$((PASS + 1))
 
   resp=$(call_api "quiero 2 hamburguesas clasicas" "$h1_cart" "$h1_history")
-  h1_action=$(echo "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
-  h1_cart=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))")
-  h1_history=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('history',[])))")
+  h1_action=$(printf '%s' "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
+  h1_cart=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))")
+  h1_history=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('history',[])))")
   echo "  Turno 2 (2 hamburguesas): action=$h1_action cart=$h1_cart"
   if [ "$h1_action" = "add_item" ]; then
     echo -e "  ${GREEN}  ✅${NC}"
@@ -263,9 +263,9 @@ run_group_h_multiturno() {
   PASS=$((PASS + 1))
 
   resp=$(call_api "y una coca" "$h1_cart" "$h1_history")
-  h1_action=$(echo "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
-  h1_cart=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))")
-  h1_history=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('history',[])))")
+  h1_action=$(printf '%s' "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
+  h1_cart=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))")
+  h1_history=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('history',[])))")
   echo "  Turno 3 (y una coca): action=$h1_action cart=$h1_cart"
   if [ "$h1_action" = "add_item" ]; then
     echo -e "  ${GREEN}  ✅${NC}"
@@ -278,7 +278,7 @@ run_group_h_multiturno() {
   PASS=$((PASS + 1))
 
   resp=$(call_api "confirmo" "$h1_cart" "$h1_history")
-  h1_action=$(echo "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
+  h1_action=$(printf '%s' "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
   echo "  Turno 4 (confirmo): action=$h1_action"
   if [ "$h1_action" = "confirm_order" ]; then
     echo -e "  ${GREEN}  ✅${NC}"
@@ -296,9 +296,9 @@ run_group_h_multiturno() {
   local h2_history='[]'
 
   resp=$(call_api "quiero 2 hamburguesas clasicas" "$h2_cart" "$h2_history")
-  h2_action=$(echo "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
-  h2_cart=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))")
-  h2_history=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('history',[])))")
+  h2_action=$(printf '%s' "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
+  h2_cart=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))")
+  h2_history=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('history',[])))")
   echo "  Turno 1 (2 hamburguesas): action=$h2_action cart=$h2_cart"
   if [ "$h2_action" = "add_item" ]; then
     echo -e "  ${GREEN}  ✅${NC}"
@@ -311,9 +311,9 @@ run_group_h_multiturno() {
   PASS=$((PASS + 1))
 
   resp=$(call_api "nono 1 nomas" "$h2_cart" "$h2_history")
-  h2_action=$(echo "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
-  h2_cart=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))")
-  h2_history=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('history',[])))")
+  h2_action=$(printf '%s' "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
+  h2_cart=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))")
+  h2_history=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('history',[])))")
   echo "  Turno 2 (nono 1 nomas): action=$h2_action cart=$h2_cart"
   local h2_pass=false
   local h2_err=""
@@ -329,8 +329,8 @@ run_group_h_multiturno() {
   PASS=$((PASS + 1))
 
   resp=$(call_api "y una coca" "$h2_cart" "$h2_history")
-  h2_action=$(echo "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
-  h2_cart=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))")
+  h2_action=$(printf '%s' "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
+  h2_cart=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))")
   echo "  Turno 3 (y una coca): action=$h2_action cart=$h2_cart"
   if [ "$h2_action" = "add_item" ]; then
     echo -e "  ${GREEN}  ✅${NC}"
@@ -348,9 +348,9 @@ run_group_h_multiturno() {
   local h3_history='[]'
 
   resp=$(call_api "quiero 2 hamburguesas clasicas y una coca" "$h3_cart" "$h3_history")
-  h3_action=$(echo "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
-  h3_cart=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))")
-  h3_history=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('history',[])))")
+  h3_action=$(printf '%s' "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
+  h3_cart=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))")
+  h3_history=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('history',[])))")
   echo "  Turno 1 (2 hamburguesas + coca): action=$h3_action cart=$h3_cart"
   if [ "$h3_action" = "add_item" ]; then
     echo -e "  ${GREEN}  ✅${NC}"
@@ -364,9 +364,9 @@ run_group_h_multiturno() {
 
   # Turno 2: usuario dice "ok gracias" → NO debe acumular
   resp=$(call_api "ok gracias" "$h3_cart" "$h3_history")
-  h3_action=$(echo "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
-  h3_cart_before_set=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))")
-  h3_history=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('history',[])))")
+  h3_action=$(printf '%s' "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
+  h3_cart_before_set=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))")
+  h3_history=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('history',[])))")
   echo "  Turno 2 (ok gracias): action=$h3_action cart=$h3_cart_before_set"
   if [ "$h3_action" = "none" ]; then
     echo -e "  ${GREEN}  ✅ sin acumulacion${NC}"
@@ -381,8 +381,8 @@ run_group_h_multiturno() {
 
   # Turno 3: "nono quiero solo 2 hamburguesas" → DEBE usar set_cart, NO add_to_cart
   resp=$(call_api "nono quiero solo 2 hamburguesas" "$h3_cart_before_set" "$h3_history")
-  h3_action=$(echo "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
-  h3_cart=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))")
+  h3_action=$(printf '%s' "$resp" | python -c "import sys,json; print(json.load(sys.stdin).get('action',''))")
+  h3_cart=$(printf '%s' "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('cart',[])))")
   echo "  Turno 3 (nono solo 2): action=$h3_action cart=$h3_cart"
   local h3_pass=false
   local h3_err=""
