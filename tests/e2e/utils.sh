@@ -152,35 +152,20 @@ print(json.dumps(report['summary']))
 
 # --- API ---
 
+SCRIPT_DIR_CALL="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # call_api <message> <cart_json> <history_json>
 call_api() {
   local message="$1"
   local cart="$2"
   local history="$3"
 
-  python -c "
-import json, urllib.request, sys
-
-body = json.dumps({
-    'message': '''$message''',
-    'restaurantId': '$RESTAURANT_ID',
-    'cart': json.loads('''$cart'''),
-    'history': json.loads('''$history'''),
-}).encode('utf-8')
-
-req = urllib.request.Request(
-    '$API_BASE/api/chat',
-    data=body,
-    headers={'Content-Type': 'application/json'},
-    method='POST'
-)
-try:
-    resp = urllib.request.urlopen(req, timeout=30)
-    data = json.loads(resp.read())
-    print(json.dumps(data))
-except Exception as e:
-    print(json.dumps({'error': str(e)}))
-"
+  python "$SCRIPT_DIR_CALL/call_api.py" \
+    "$API_BASE" \
+    "$RESTAURANT_ID" \
+    "$message" \
+    "$cart" \
+    "$history"
 }
 
 # --- ASSERTIONS ---
