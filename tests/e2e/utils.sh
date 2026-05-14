@@ -57,6 +57,9 @@ print(json.dumps(tc))
 " 2>/dev/null)
   invalid_items=$(echo "$resp" | python -c "import sys,json; print(json.dumps(json.load(sys.stdin).get('invalidItems',[])))" 2>/dev/null)
 
+  local py_pass
+  if [ "$passed" = true ]; then py_pass="True"; else py_pass="False"; fi
+
   local entry
   entry=$(python -c "
 import json
@@ -64,7 +67,7 @@ entry = {
     'group': '$group',
     'id': '$id',
     'description': '''$desc''',
-    'pass': $passed,
+    'pass': $py_pass,
     'input': {
         'message': '''$message''',
         'cartBefore': $cart_before,
