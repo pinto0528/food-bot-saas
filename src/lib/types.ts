@@ -12,6 +12,13 @@ export interface MenuItemInput {
   available?: boolean
 }
 
+export interface MenuItem {
+  name: string
+  price: number
+  description: string | null
+  category: string
+}
+
 export interface OrderItem {
   name: string
   qty: number
@@ -37,4 +44,35 @@ export interface ToolCall {
 export interface LLMResponse {
   content: string
   toolCalls: ToolCall[]
+}
+
+export type ConversationState =
+  | 'GREETING'
+  | 'ORDERING'
+  | 'ADD_MORE'
+  | 'CONFIRM'
+  | 'DONE'
+  | 'CANCEL'
+
+export type IntentType =
+  | 'add_item'
+  | 'set_cart'
+  | 'remove_item'
+  | 'show_summary'
+  | 'confirm'
+  | 'cancel'
+  | 'chitchat'
+
+export interface IntentResult {
+  intent: IntentType
+  items?: { name: string; qty?: number }[]
+  text?: string
+}
+
+export interface StateResult {
+  reply: string
+  action: string
+  cart: OrderItem[]
+  state: ConversationState
+  invalidItems?: string[]
 }
