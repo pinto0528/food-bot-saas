@@ -1,5 +1,6 @@
 import OpenAI from 'openai'
-import type { LLMResponse } from './types'
+import type { LLMResponse, ToolCall } from './types'
+import { CHAT_TOOLS } from './llm'
 
 export async function processWithOpenAI(
   messages: { role: string; content: string }[]
@@ -10,13 +11,28 @@ export async function processWithOpenAI(
       model: 'gpt-4o-mini',
       messages: messages as any,
       temperature: 0.3,
-      response_format: { type: 'json_object' },
+      tools: CHAT_TOOLS,
+      tool_choice: 'auto',
     })
 
-    const content = completion.choices[0]?.message?.content
-    if (!content) return null
+    const choice = completion.choices[0]?.message
+    if (!choice) return null
 
-    return JSON.parse(content) as LLMResponse
+    const content = choice.content || ''
+    const toolCalls: ToolCall[] = []
+
+    if (choice.tool_calls) {
+      for (const tc of choice.tool_calls) {
+        if (tc.type === 'function') {
+          toolCalls.push({
+            name: tc.function.name,
+            args: JSON.parse(tc.function.arguments),
+          })
+        }
+      }
+    }
+
+    return { content, toolCalls }
   } catch (err) {
     console.error('OpenAI error:', err)
     return null

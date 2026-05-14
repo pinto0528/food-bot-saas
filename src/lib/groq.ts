@@ -1,5 +1,6 @@
 import Groq from 'groq-sdk'
-import type { LLMResponse } from './types'
+import type { LLMResponse, ToolCall } from './types'
+import { CHAT_TOOLS } from './llm'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || '' })
 
@@ -8,16 +9,31 @@ export async function processWithGroq(
 ): Promise<LLMResponse | null> {
   try {
     const completion = await groq.chat.completions.create({
-      model: 'llama3-70b-8192',
+      model: 'llama-3.1-8b-instant',
       messages: messages as any,
       temperature: 0.3,
-      response_format: { type: 'json_object' },
+      tools: CHAT_TOOLS,
+      tool_choice: 'auto',
     })
 
-    const content = completion.choices[0]?.message?.content
-    if (!content) return null
+    const choice = completion.choices[0]?.message
+    if (!choice) return null
 
-    return JSON.parse(content) as LLMResponse
+    const content = choice.content || ''
+    const toolCalls: ToolCall[] = []
+
+    if (choice.tool_calls) {
+      for (const tc of choice.tool_calls) {
+        if (tc.type === 'function') {
+          toolCalls.push({
+            name: tc.function.name,
+            args: JSON.parse(tc.function.arguments),
+          })
+        }
+      }
+    }
+
+    return { content, toolCalls }
   } catch (err) {
     console.error('Groq error:', err)
     return null

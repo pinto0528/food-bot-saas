@@ -1,4 +1,4 @@
-import type { LLMResponse, OrderItem } from './types'
+import type { LLMResponse, OrderItem, ToolCall } from './types'
 import type { Database, Json } from './database.types'
 import { SupabaseClient } from '@supabase/supabase-js'
 
@@ -14,8 +14,25 @@ interface Restaurant {
   id: string
   name: string
   phone: string
-  waba_token: string | null
-  phone_number_id: string | null
+}
+
+const ACTION_MAP: Record<string, string> = {
+  add_to_cart: 'add_item',
+  remove_from_cart: 'remove_item',
+  set_cart: 'set_item',
+  show_summary: 'show_summary',
+  confirm_order: 'confirm_order',
+  cancel_order: 'cancel',
+}
+
+function lookupPrice(menuItems: { name: string; price: number }[], name: string): number {
+  const match = menuItems.find((m) => m.name.toLowerCase() === name.toLowerCase())
+  return match?.price || 0
+}
+
+function lookupName(menuItems: { name: string; price: number }[], name: string): string | null {
+  const match = menuItems.find((m) => m.name.toLowerCase() === name.toLowerCase())
+  return match?.name || null
 }
 
 export async function executeAction(
@@ -27,71 +44,110 @@ export async function executeAction(
   const context = (conversation.context as any) || {}
   const items: OrderItem[] = (context.items as OrderItem[]) || []
 
-  switch (llmResponse.action) {
-    case 'add_item': {
-      if (llmResponse.items) {
-        for (const newItem of llmResponse.items) {
-          const existing = items.find(
-            (i) => i.name.toLowerCase() === newItem.name.toLowerCase()
-          )
+  // Look up menu items once for validation
+  const { data: menuItems } = await supabase
+    .from('menu_items')
+    .select('name, price')
+    .eq('restaurant_id', restaurant.id)
+    .eq('available', true)
+
+  let updatedItems = [...items]
+  let invalidItems: string[] = []
+
+  for (const tc of llmResponse.toolCalls) {
+    const mappedAction = ACTION_MAP[tc.name]
+    if (!mappedAction) continue
+
+    switch (tc.name) {
+      case 'add_to_cart': {
+        const newItems = tc.args?.items || []
+        for (const item of newItems) {
+          const exactName = lookupName(menuItems || [], item.name)
+          if (!exactName) {
+            invalidItems.push(item.name)
+            continue
+          }
+          const price = lookupPrice(menuItems || [], item.name)
+          const existing = updatedItems.find((i) => i.name.toLowerCase() === item.name.toLowerCase())
           if (existing) {
-            existing.qty += newItem.qty
-            if (newItem.notes) existing.notes = newItem.notes
+            existing.qty += item.qty
+            if (item.notes) existing.notes = item.notes
           } else {
-            items.push({
-              name: newItem.name,
-              qty: newItem.qty,
-              price: newItem.price || 0,
-              notes: newItem.notes || '',
+            updatedItems.push({
+              name: exactName,
+              qty: item.qty,
+              price,
+              notes: item.notes || '',
             })
           }
         }
+        break
       }
-      await supabase
-        .from('conversations')
-        .update({ context: { ...context, items }, updated_at: new Date().toISOString() })
-        .eq('id', conversation.id)
-      break
-    }
-
-    case 'remove_item': {
-      const updatedItems = items.filter(
-        (i) => !llmResponse.items?.some((r) => r.name.toLowerCase() === i.name.toLowerCase())
-      )
-      await supabase
-        .from('conversations')
-        .update({ context: { ...context, items: updatedItems }, updated_at: new Date().toISOString() })
-        .eq('id', conversation.id)
-      break
-    }
-
-    case 'confirm_order': {
-      const total = items.reduce((sum, i) => sum + i.price * i.qty, 0)
-      const { error } = await supabase.from('orders').insert({
-        restaurant_id: restaurant.id,
-        conversation_id: conversation.id,
-        customer_phone: (conversation.messages as any)?.[0]?.role === 'user'
-          ? extractCustomerPhone(conversation.messages as any) : '',
-        customer_name: null,
-        items: items as any,
-        total,
-        notes: null,
-        status: 'pending',
-      })
-      if (!error) {
-        await supabase
-          .from('conversations')
-          .update({ status: 'closed', context: { items: [] }, updated_at: new Date().toISOString() })
-          .eq('id', conversation.id)
+      case 'remove_from_cart': {
+        const names = tc.args?.names || []
+        updatedItems = updatedItems.filter(
+          (i) => !names.some((n: string) => n.toLowerCase() === i.name.toLowerCase())
+        )
+        break
       }
-      break
+      case 'set_cart': {
+        const newItems = tc.args?.items || []
+        updatedItems = []
+        for (const item of newItems) {
+          const exactName = lookupName(menuItems || [], item.name)
+          if (!exactName) {
+            invalidItems.push(item.name)
+            continue
+          }
+          const price = lookupPrice(menuItems || [], item.name)
+          updatedItems.push({
+            name: exactName,
+            qty: item.qty,
+            price,
+            notes: item.notes || '',
+          })
+        }
+        break
+      }
+      case 'cancel_order':
+        updatedItems = []
+        break
+      case 'confirm_order': {
+        const total = updatedItems.reduce((sum, i) => sum + i.price * i.qty, 0)
+        const { error } = await supabase.from('orders').insert({
+          restaurant_id: restaurant.id,
+          conversation_id: conversation.id,
+          customer_phone: (conversation.messages as any)?.[0]?.role === 'user'
+            ? extractCustomerPhone(conversation.messages as any) : '',
+          customer_name: null,
+          items: updatedItems as any,
+          total,
+          notes: null,
+          status: 'pending',
+        })
+        if (!error) {
+          updatedItems = []
+          await supabase
+            .from('conversations')
+            .update({ status: 'closed', context: { items: [] }, updated_at: new Date().toISOString() })
+            .eq('id', conversation.id)
+        }
+        break
+      }
     }
+  }
 
-    case 'show_summary':
-    case 'ask_clarify':
-    case 'cancel':
-    case 'greeting':
-      break
+  // Save updated cart to DB (only if not confirm_order which already saved)
+  const hasConfirm = llmResponse.toolCalls.some((tc) => tc.name === 'confirm_order')
+  if (!hasConfirm) {
+    await supabase
+      .from('conversations')
+      .update({ context: { ...context, items: updatedItems }, updated_at: new Date().toISOString() })
+      .eq('id', conversation.id)
+  }
+
+  if (invalidItems.length > 0) {
+    console.warn('Invalid items rejected:', invalidItems)
   }
 }
 

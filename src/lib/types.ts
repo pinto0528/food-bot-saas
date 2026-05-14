@@ -29,9 +29,12 @@ export interface OrderContext {
   items: OrderItem[]
 }
 
+export interface ToolCall {
+  name: string
+  args: Record<string, any>
+}
+
 export interface LLMResponse {
-  action: 'add_item' | 'remove_item' | 'show_summary' | 'confirm_order' | 'ask_clarify' | 'cancel' | 'greeting'
-  message: string
-  items?: OrderItem[]
-  clarification_needed?: boolean
+  content: string
+  toolCalls: ToolCall[]
 }

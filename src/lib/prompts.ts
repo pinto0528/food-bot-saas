@@ -11,26 +11,29 @@ interface RestaurantInfo {
   name: string
 }
 
-export function buildSystemPrompt(
-  restaurant: RestaurantInfo,
-  menuItems: MenuItem[],
-  context: { items?: OrderItem[] },
-  history: ConversationMessage[]
-): string {
+function formatMenu(menuItems: MenuItem[]): string {
   const menuByCategory = menuItems.reduce<Record<string, MenuItem[]>>((acc, item) => {
     if (!acc[item.category]) acc[item.category] = []
     acc[item.category].push(item)
     return acc
   }, {})
 
-  const menuText = Object.entries(menuByCategory)
+  return Object.entries(menuByCategory)
     .map(([cat, items]) =>
       `--- ${cat} ---\n${items
-        .filter((i) => i.description)
         .map((i) => `${i.name} - $${i.price.toFixed(2)}`)
         .join('\n')}`
     )
     .join('\n\n')
+}
+
+export function buildSystemPrompt(
+  restaurant: RestaurantInfo,
+  menuItems: MenuItem[],
+  context: { items?: OrderItem[] },
+  history: ConversationMessage[]
+): string {
+  const menuText = formatMenu(menuItems)
 
   const cart = context.items || []
   const total = cart.reduce((sum, item) => sum + item.price * item.qty, 0)
@@ -42,9 +45,9 @@ export function buildSystemPrompt(
 
   const lastMessages = history.slice(-6).map((m) => `${m.role}: ${m.content}`).join('\n')
 
-  return `Eres un asistente de pedidos para ${restaurant.name}. Ayudas a clientes a hacer pedidos por WhatsApp.
+  return `Eres un asistente de pedidos para ${restaurant.name}.
 
-MENU DEL RESTAURANTE:
+MENU DEL RESTAURANTE (unicos items disponibles):
 ${menuText}
 
 ESTADO ACTUAL DEL PEDIDO:
@@ -55,35 +58,35 @@ ${lastMessages}
 
 INSTRUCCIONES:
 - Responde SIEMPRE en español, amigable y conciso
-- Si el cliente pide algo del menu, responde con action "add_item"
-- Si pide algo que no existe en el menu, sugierele alternativas similares
-- NUNCA inventes items o precios que no esten en el menu
-- Cuando el cliente quiera confirmar el pedido, usa action "confirm_order"
-- Si no entendiste, usa action "ask_clarify"
-- Para saludos usa action "greeting"
-
-Responde SOLO con JSON valido en este formato:
-{
-  "action": "add_item" | "remove_item" | "show_summary" | "confirm_order" | "ask_clarify" | "cancel" | "greeting",
-  "message": "texto amigable para el cliente",
-  "items": [{"name": "nombre exacto del menu", "qty": 1, "notes": "observaciones"}],
-  "clarification_needed": false
-}`
+- Cuando el cliente PIDA NUEVOS items (sumar al pedido), usa "add_to_cart"
+- Cuando el cliente QUIERA CAMBIAR/REEMPLAZAR su pedido (ej: "no, quiero solo 2", "mejor poneme 3 cocas", "cambialo a 1 hamburguesa"), usa "set_cart" para REEMPLAZAR todo el carrito
+- Cuando el cliente quiera sacar items, usa "remove_from_cart"
+- Cuando el cliente quiera ver su pedido, usa "show_summary"
+- Cuando el cliente confirme explicitamente el pedido, usa "confirm_order"
+- Si el cliente cancela todo, usa "cancel_order"
+- NUNCA uses add_to_cart ni set_cart con items que no esten en el menu de arriba
+- Si el cliente pide algo que no esta en el menu, disculpate y sugiere alternativas del menu
+- NUNCA inventes politicas del restaurante (delivery, horarios, metodos de pago, direccion)
+- Si el cliente pregunta algo que no sabes, responde "No tengo esa informacion, consulta con el restaurante"
+- Si no entendiste o falta informacion, responde con texto pidiendo aclaracion (sin tool call)
+- Para saludos y conversacion casual, solo responde con texto (sin tool call)
+- Tus respuestas son solo texto amigable, NO incluyas JSON`
 }
 
 export function buildGreetingPrompt(restaurant: RestaurantInfo, menuItems: MenuItem[]): string {
-  const categories = [...new Set(menuItems.map((i) => i.category))]
+  const menuText = formatMenu(menuItems)
   return `Eres un asistente de pedidos para ${restaurant.name}.
 
-Categorias del menu: ${categories.join(', ')}
+MENU COMPLETO:
+${menuText}
 
-El cliente acaba de escribir por primera vez. Saluda amablemente y presenta las categorias disponibles.
+El cliente acaba de escribir su primer mensaje (lo veras abajo en "user").
+- Si solo saluda, PRESENTA el menu y preguntale que quiere.
+- Si ya pidio algo, procesalo con las tools correspondientes.
 
-Responde SOLO con JSON:
-{
-  "action": "greeting",
-  "message": "texto de bienvenida mostrando categorias",
-  "items": [],
-  "clarification_needed": false
-}`
+INSTRUCCIONES:
+- Cuando el cliente pida items, usa el tool "add_to_cart"
+- Cuando el cliente quiera reemplazar su pedido, usa "set_cart"
+- NUNCA uses add_to_cart ni set_cart con items que no esten en el menu
+- Tus respuestas son solo texto amigable, NO incluyas JSON`
 }

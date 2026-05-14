@@ -24,6 +24,9 @@ export default function Home() {
             los pedidos al instante. Sin apps, sin codigos QR, sin complicaciones.
           </p>
           <div className="flex gap-4 justify-center">
+            <a href="/demo">
+              <Button size="lg" variant="outline">Probar Bot</Button>
+            </a>
             <a href="/auth/login">
               <Button size="lg">Acceder al Dashboard</Button>
             </a>

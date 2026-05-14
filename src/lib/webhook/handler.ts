@@ -20,7 +20,6 @@ export async function handleIncomingMessage(
 ) {
   const { phone_number_id, from, text } = payload
 
-  // Find restaurant by phone_number_id
   const { data: restaurant, error: restError } = await supabase
     .from('restaurants')
     .select('*')
@@ -35,17 +34,13 @@ export async function handleIncomingMessage(
     return
   }
 
-  if (restaurant.status === 'suspended') {
-    return
-  }
+  if (restaurant.status === 'suspended') return
 
-  // Check if this is a response from the restaurant owner
   if (from === restaurant.phone) {
     await handleRestaurantResponse(supabase, restaurant, text)
     return
   }
 
-  // Customer message — find or create conversation
   const { data: existingConv } = await supabase
     .from('conversations')
     .select('*')
@@ -87,7 +82,6 @@ export async function handleIncomingMessage(
     conversation.messages = []
   }
 
-  // Add user message to history
   const userMessage: ConversationMessage = {
     role: 'user',
     content: text,
@@ -96,7 +90,6 @@ export async function handleIncomingMessage(
   const existingMessages = Array.isArray(conversation.messages) ? (conversation.messages as unknown as ConversationMessage[]) : []
   const messages = [...existingMessages, userMessage]
 
-  // Get menu items
   const { data: menuItems } = await supabase
     .from('menu_items')
     .select('name, description, price, category')
@@ -137,25 +130,27 @@ export async function handleIncomingMessage(
     return
   }
 
+  // Save current cart state before executeAction (confirm_order clears it)
+  const currentItems: OrderItem[] = convContext.items || []
+
   await executeAction(supabase, llmResponse, conversation, restaurant)
 
-  const replyText = llmResponse.message
+  const replyText = llmResponse.content
   await sendWhatsAppMessage(restaurant.waba_token || '', restaurant.phone_number_id || '', from, replyText)
 
-  if (llmResponse.action === 'confirm_order') {
-    const items: OrderItem[] = convContext.items || []
-    const total = items.reduce((sum, i) => sum + i.price * i.qty, 0)
+  const hasConfirm = llmResponse.toolCalls.some((tc) => tc.name === 'confirm_order')
+  if (hasConfirm) {
+    const total = currentItems.reduce((sum, i) => sum + i.price * i.qty, 0)
     await notifyRestaurant(
       restaurant.waba_token || '',
       restaurant.phone_number_id || '',
       restaurant.phone,
       from,
-      items,
+      currentItems,
       total
     )
   }
 
-  // Save messages
   const assistantMsg: ConversationMessage = {
     role: 'assistant',
     content: replyText,
@@ -174,7 +169,6 @@ async function handleRestaurantResponse(
 ) {
   const trimmed = text.trim()
 
-  // Find the most recent pending order for this restaurant
   const { data: order } = await supabase
     .from('orders')
     .select('*, conversations!inner(customer_phone)')
