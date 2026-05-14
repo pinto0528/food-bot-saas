@@ -26,10 +26,20 @@ req = urllib.request.Request(
     headers={'Content-Type': 'application/json'},
     method='POST',
 )
+import os
+os.environ.setdefault('PYTHONIOENCODING', 'utf-8')
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 try:
     resp = urllib.request.urlopen(req, timeout=30)
     raw = resp.read()
-    data = json.loads(raw.decode('utf-8'))
-    print(json.dumps(data, ensure_ascii=False))
+    text = raw.decode('utf-8', errors='replace')
+    data = json.loads(text)
+    out = json.dumps(data, ensure_ascii=False)
+    sys.stdout.buffer.write(out.encode('utf-8'))
+    sys.stdout.buffer.write(b'\n')
 except Exception as e:
-    print(json.dumps({'error': str(e)}, ensure_ascii=False))
+    err = json.dumps({'error': str(e)}, ensure_ascii=False)
+    sys.stdout.buffer.write(err.encode('utf-8'))
+    sys.stdout.buffer.write(b'\n')
